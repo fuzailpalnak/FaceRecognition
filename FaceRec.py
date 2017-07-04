@@ -6,7 +6,7 @@ import wx
 from os import path
 import cPickle as pickle
 
-from FaceDetection import FaceDetector
+from Detection_classification.FaceDetection import FaceDetector
 from gui import BaseLayout
 import os
 
@@ -67,7 +67,9 @@ class FaceLayout(BaseLayout):
 
         if len(self.dlib_face) >0:
             #print len(self.dlib_face)
-            self.faces._rect_to_css(self.dlib_face,self.frame)
+            for face in self.dlib_face:
+                self.faces.bbox(face,self.frame)
+            #self.faces._rect_to_css(self.dlib_face,self.frame)
             #cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
             success=True
             """ #if want to convert dlib rectangle to normal format
@@ -90,17 +92,17 @@ class FaceLayout(BaseLayout):
                 if (self.count%5==0):
                     success, self.face_encoding_points = self.faces.face_encoding(self.landmark_points,
                                                                                   self.frame)
-                    print np.array(self.face_encoding_points).shape
+                    #print np.array(self.face_encoding_points).shape
                     for i in range (0,len(self.landmark_points)):
 
 
                         #self.face_encoding_points = np.array(self.face_encoding_points).flatten()
 
-                        print np.array(self.face_encoding_points).shape
+                        #print np.array(self.face_encoding_points).shape
                         prediction = self.model.predict_proba(np.array(self.face_encoding_points[i]).flatten()).ravel()
 
                         max_prob = np.argmax(prediction)
-                        print prediction[max_prob]
+                        #print prediction[max_prob]
                         if prediction[max_prob] > 0.6:
                             prediction=self.model.predict(np.array(self.face_encoding_points[i]).flatten())
                             self.faces.prediction=prediction
