@@ -92,30 +92,27 @@ class FaceLayout(BaseLayout):
                 if (self.count%5==0):
                     success, self.face_encoding_points = self.faces.face_encoding(self.landmark_points,
                                                                                   self.frame)
+
+                    success, prediction_list = self.faces.Face_Rec(self.landmark_points,self.face_encoding_points,
+                                                                                                        self.model)
+
+
                     #print np.array(self.face_encoding_points).shape
-                    for i in range (0,len(self.landmark_points)):
+                    if success:
 
 
-                        #self.face_encoding_points = np.array(self.face_encoding_points).flatten()
+                        for i, face in enumerate(self.dlib_face):
 
-                        #print np.array(self.face_encoding_points).shape
-                        prediction = self.model.predict_proba(np.array(self.face_encoding_points[i]).flatten()).ravel()
 
-                        max_prob = np.argmax(prediction)
-                        #print prediction[max_prob]
-                        if prediction[max_prob] > 0.6:
-                            prediction=self.model.predict(np.array(self.face_encoding_points[i]).flatten())
-                            self.faces.prediction=prediction
-
-                        else:
-                            self.faces.prediction="unknown"
+                            self.faces.prediction=prediction_list[i]
 
 
 
 
 
 
-                    # predict label with pre-trained MLP
+
+
 
             self.count = self.count + 1
         return frame
