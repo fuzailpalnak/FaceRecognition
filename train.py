@@ -1,21 +1,16 @@
-import os
 import dlib
-import numpy as np
-import scipy.misc
-from PIL import Image
-import openface
-import cv2,glob,random
+import os
+import glob,random
 from sklearn.svm import SVC
-import cPickle as pickle
-from sklearn.preprocessing import LabelEncoder
-from known_people_scan import *
+import numpy as np
+from Create_dataset.known_people_scan import *
 
 def face_encoding(landmark_list,image,face_encoder):
     for raw_landmark_set in landmark_list:
         return True,np.array(face_encoder.compute_face_descriptor(image, raw_landmark_set))
 
 def get_files(known_faces):
-    files = glob.glob("/home/palnak/PycharmProjects/FaceRec/knownfaces/%s/*" % known_faces)
+    files = glob.glob("/home/palnak/PycharmProjects/FaceRec/celebrity/%s/*.jpg" % known_faces)
     random.shuffle(files)
     training = files[:int(len(files) * 0.8)]  # get first 80% of file list
     prediction = files[-int(len(files) * 0.2):]  # get last 20% of file list
@@ -23,7 +18,9 @@ def get_files(known_faces):
 
 
 def main():
-    known_faces = ["amyadams", "chadsmith","islafisher","willferrell"]
+    for root, known_faces, files in os.walk("/home/palnak/PycharmProjects/FaceRec/celebrity/", True):
+        break
+    #known_faces = ["amyadams", "chadsmith","islafisher","willferrell","markruffalo","robertdowney","scarletjohanson","chrisevans"]
     face_recognition_model = "params/dlib_face_recognition_resnet_model_v1.dat"
     detector = dlib.get_frontal_face_detector()
     datafile_train = "/home/palnak/PycharmProjects/FaceRec/datasets/train.pkl"
@@ -42,7 +39,7 @@ def main():
               tol=1e-3, verbose=True)
     clf.fit(training_data, training_labels)
 
-    f = open("params/svm.pkl", 'wb')
+    f = open("params/svm_celebrity.pkl", 'wb')
     pickle.dump(clf, f)
 
     print("getting accuracies %s")  # Use score() function to get accuracy
