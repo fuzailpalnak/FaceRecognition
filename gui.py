@@ -1,14 +1,9 @@
-#!/usr/b
-
 from abc import ABCMeta
 from abc import abstractmethod
 from noconflict import makecls
-import time
 
 import wx
 import cv2
-
-
 
 
 class BaseLayout(wx.Frame):
@@ -57,7 +52,7 @@ class BaseLayout(wx.Frame):
         # determine window size and init wx.Frame
         success, frame = self._acquire_frame()
         if not success:
-            print "Could not acquire frame from camera."
+            print ("Could not acquire frame from camera.")
             raise SystemExit
 
         self.imgHeight, self.imgWidth = frame.shape[:2]
@@ -125,7 +120,6 @@ class BaseLayout(wx.Frame):
         if success:
             # process current frame
             frame = self._process_frame(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
-
 
             # update buffer and paint (EVT_PAINT triggered by Refresh)
             self.bmp.CopyFromBuffer(frame)

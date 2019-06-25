@@ -1,57 +1,124 @@
-import dlib
+import argparse
+from scipy import misc
 import os
-import glob,random
+import glob
+import random
 from sklearn.svm import SVC
 import numpy as np
-from Create_dataset.known_people_scan import *
+import pickle
 
-def face_encoding(landmark_list,image,face_encoder):
-    for raw_landmark_set in landmark_list:
-        return True,np.array(face_encoder.compute_face_descriptor(image, raw_landmark_set))
+from face_detection.detection import FaceDetector
+from face_recognition.recognition import FaceRecognition
 
-def get_files(known_faces):
-    files = glob.glob("/home/palnak/PycharmProjects/FaceRec/celebrity/%s/*.jpg" % known_faces)
+from utility import make_directory
+
+
+def get_known_faces(path):
+    return os.listdir(path)
+
+
+def generate_data_and_labels(data_items, face_detector, face_recognizer, known_faces):
+    data = list()
+    labels = list()
+    for item in data_items:
+        image = misc.imread(item)  # open image
+        image, dlib_face = face_detector.detect(image)
+        success, landmark_points = face_recognizer.face_geometry(dlib_face, image)
+        success, face_encoding_points = face_recognizer.face_encoding(
+            landmark_points, image
+        )
+
+        if success:
+            data.append(np.array(face_encoding_points).flatten())
+            labels.append(known_faces)
+        else:
+            print("SKIPPING")
+    return data, labels
+
+
+def get_files(known_faces, data_folder):
+    files = glob.glob(
+        data_folder + "/%s/*.jpg" % known_faces
+    )
     random.shuffle(files)
-    training = files[:int(len(files) * 0.8)]  # get first 80% of file list
-    prediction = files[-int(len(files) * 0.2):]  # get last 20% of file list
-    return training, prediction
+    training = files[: int(len(files) * 0.8)]  # get first 80% of file list
+    val = files[-int(len(files) * 0.2):]  # get last 20% of file list
+    return training, val
+
+
+def create_model(train_data, train_labels):
+    train_data = np.squeeze(np.array(train_data))
+    clf = SVC(kernel="linear", probability=True, tol=1e-3, verbose=True)
+    clf.fit(train_data, train_labels)
+
+    save_dir = make_directory(os.getcwd(), "params")
+    f = open(os.path.join(save_dir, "face_recognition.pkl"), "wb")
+    pickle.dump(clf, f)
+    return clf
+
+
+def validate_data(val_data, val_labels, clf):
+    val_data = np.squeeze(np.array(val_data))
+    print("getting accuracies %s")  # Use score() function to get accuracy
+
+    accuracy = clf.score(val_data, val_labels)
+    print(accuracy)
 
 
 def main():
-    for root, known_faces, files in os.walk("/home/palnak/PycharmProjects/FaceRec/celebrity/", True):
-        break
-    #known_faces = ["amyadams", "chadsmith","islafisher","willferrell","markruffalo","robertdowney","scarletjohanson","chrisevans"]
-    face_recognition_model = "params/dlib_face_recognition_resnet_model_v1.dat"
-    detector = dlib.get_frontal_face_detector()
-    datafile_train = "/home/palnak/PycharmProjects/FaceRec/datasets/train.pkl"
-    datafile_test = "/home/palnak/PycharmProjects/FaceRec/datasets/test.pkl"
-    face_encoder = dlib.face_recognition_model_v1(face_recognition_model)
+    parser = argparse.ArgumentParser()
+    arg = parser.add_argument
+    arg("--data_set_path", type=str, help="pass dataset", required=True)
+    arg(
+        "--rec_model",
+        type=str,
+        help="pass dlib_face_recognition_resnet_model_v1.dat path",
+        required=True,
+    )
+    arg(
+        "--landmark_data",
+        type=str,
+        help="pass shape_predictor_68_face_landmarks.dat path",
+        required=True,
+    )
 
-    training_data, training_labels, prediction_data, prediction_labels=make_set(known_faces,detector,datafile_train,datafile_test,face_encoder)
+    args = parser.parse_args()
+
+    root_data_folder = args.data_set_path
+    face_rec_model = args.rec_model
+    landmark_data = args.landmark_data
+
+    training_data = list()
+    training_labels = list()
+
+    val_data = list()
+    val_labels = list()
+
+    face_detection = FaceDetector()
+    face_recognition = FaceRecognition(
+        face_encoder_model=face_rec_model, landmark_data=landmark_data
+    )
+
+    known_faces = get_known_faces(root_data_folder)
+
+    for known_faces in known_faces:
+        training, prediction = get_files(known_faces, root_data_folder)
+        data, labels = generate_data_and_labels(
+            training, face_detection, face_recognition, known_faces
+        )
+        training_data.extend(data)
+        training_labels.extend(labels)
+
+        data, labels = generate_data_and_labels(
+            prediction, face_detection, face_recognition, known_faces
+        )
+
+        val_data.extend(data)
+        val_labels.extend(labels)
+
+    clf = create_model(training_data, training_labels)
+    validate_data(val_data, val_labels, clf)
 
 
-    training_data= np.squeeze(np.array(training_data))
-    print training_data
-
-    prediction_data=np.squeeze(np.array(prediction_data))
-    print prediction_data
-    clf = SVC(kernel='linear', probability=True,
-              tol=1e-3, verbose=True)
-    clf.fit(training_data, training_labels)
-
-    f = open("params/svm_celebrity.pkl", 'wb')
-    pickle.dump(clf, f)
-
-    print("getting accuracies %s")  # Use score() function to get accuracy
-
-    pred_lin = clf.score(prediction_data, prediction_labels)
-    print pred_lin
-
-
-
-
-
-
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

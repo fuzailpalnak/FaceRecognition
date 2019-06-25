@@ -11,8 +11,8 @@ once you install these lib check for following files
 
 you will find the above files in  params folder in my git repo
 
-how to train the model
-Files needed to train model-createpickle.py , known_people_scan.py  ,Facedetection.py
+how to generate_data_and_labels the model
+Files needed to generate_data_and_labels model-createpickle.py , known_people_scan.py  ,Facedetection.py
 
 1-there is a folder called knownfaces which has folder wise images of user (so now there are only 4 users )
   if you wish to add add more user create a folder with name of user  in knownfaces folder and add images in the newly created folder
