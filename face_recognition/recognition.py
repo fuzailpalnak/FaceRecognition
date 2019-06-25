@@ -8,6 +8,13 @@ class FaceRecognition:
         self.predictor = get_landmark_detector(landmark_data)
         self.face_encoder = get_face_recognition_model(face_encoder_model)
 
+        self.actual_prediction = []
+        self.prediction_list = []
+        self.average_prediction_dictionary = {}
+        self.actual_probability = []
+        self.number_of_count = {}
+        self.average_probability = None
+
     @staticmethod
     def get_average_probability(actual_prediction, prediction, probability, prob):
         count = 1
@@ -18,49 +25,41 @@ class FaceRecognition:
         return probability, count
 
     def get_probability(self, landmark_points, face_encoding_points, model):
-        actual_prediction = []
-        prediction_list = []
-        average_prediction_dictionary = {}
-        actual_probability = []
-        number_of_count = {}
-        average_probability = None
 
+        prediction_probability = model.predict_proba(face_encoding_points)
+        prediction = model.predict(face_encoding_points)
         for i in range(0, len(landmark_points)):
-            encoding_points = np.array(face_encoding_points)[i:]
-            prediction = model.predict_proba(encoding_points).ravel()
+            max_prob = np.argmax(prediction_probability[i])
 
-            max_prob = np.argmax(prediction)
+            probability = prediction_probability[i][max_prob]
 
-            probability = prediction[max_prob]
+            self.actual_probability.append(probability)
+            if prediction[i] not in self.actual_prediction:
 
-            actual_probability.append(probability)
-            prediction = model.predict(encoding_points)
-            if prediction not in actual_prediction:
-
-                actual_prediction.append(prediction[0])
+                self.actual_prediction.append(prediction[i])
             else:
-                average_probability, count = self.get_average_probability(
-                    actual_prediction, prediction, probability, actual_probability
+                self.average_probability, count = self.get_average_probability(
+                    self.actual_prediction, prediction[i], probability, self.actual_probability
                 )
 
-                actual_prediction.append(prediction[0])
-                average_probability = average_probability / count
-            if prediction[0] not in average_prediction_dictionary:
-                average_prediction_dictionary[prediction[0]] = probability
-                prediction_list.append(prediction[0])
-                number_of_count[prediction[0]] = 1
+                self.actual_prediction.append(prediction[i])
+                self.average_probability = self.average_probability / count
+            if prediction[i] not in self.average_prediction_dictionary:
+                self.average_prediction_dictionary[prediction[i]] = probability
+                self.prediction_list.append(prediction[i])
+                self.number_of_count[prediction[i]] = 1
             else:
-                for j in range(0, len(average_prediction_dictionary)):
-                    if prediction_list[j] == prediction:
-                        average_prediction_dictionary[
-                            prediction[0]
-                        ] = average_probability
-                number_of_count[prediction[0]] = number_of_count[prediction[0]] + 1
+                for j in range(0, len(self.average_prediction_dictionary)):
+                    if self.prediction_list[j] == prediction[i]:
+                        self.average_prediction_dictionary[
+                            prediction[i]
+                        ] = self.average_probability
+                self.number_of_count[prediction[i]] = self.number_of_count[prediction[i]] + 1
         return (
-            actual_probability,
-            actual_prediction,
-            average_prediction_dictionary,
-            number_of_count,
+            self.actual_probability,
+            self.actual_prediction,
+            self.average_prediction_dictionary,
+            self.number_of_count,
         )
 
     @staticmethod

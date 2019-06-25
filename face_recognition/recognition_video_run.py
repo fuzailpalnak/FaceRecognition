@@ -38,15 +38,13 @@ class FaceRecVideo(BaseLayout):
         frame, dlib_face = self.face_detect.detect(frame)
 
         if len(dlib_face) > 0:
-            for face in dlib_face:
-                self.face_detect.bbox(face, frame)
 
             success, landmark_points = self.face_rec.face_geometry(dlib_face, frame)
             success, face_encoding_points = self.face_rec.face_encoding(
                 landmark_points, frame
             )
 
-            if self.count % 5 == 0:
+            if self.count % 2 == 0:
                 prob, prediction_list_temp, prediction_dict, number_of_count = self.face_rec.get_probability(
                     landmark_points, face_encoding_points, self.model
                 )
